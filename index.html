@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shadow Runner</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(to top, #222, #000);
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+      font-family: Arial;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const groundY = canvas.height - 100;
+
+    let score = 0;
+    let gameOver = false;
+    let gameSpeed = 6;
+
+    // Load images (these are working direct image URLs)
+    const runnerImg = new Image();
+    runnerImg.src = "https://i.ibb.co/pJYk3TY/ninja.png"; // Small ninja
+
+    const obstacleImg = new Image();
+    obstacleImg.src = "https://i.ibb.co/JqjPq5V/spike.png"; // Simple spike
+
+    let player = {
+      x: 100,
+      y: groundY,
+      w: 60,
+      h: 80,
+      vy: 0,
+      gravity: 1.2,
+      jumpPower: -22,
+      onGround: true
+    };
+
+    let obstacles = [];
+
+    function spawnObstacle() {
+      obstacles.push({
+        x: canvas.width,
+        y: groundY,
+        w: 50,
+        h: 60
+      });
+    }
+
+    function drawPlayer() {
+      ctx.drawImage(runnerImg, player.x, player.y - player.h, player.w, player.h);
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(ob => {
+        ctx.drawImage(obstacleImg, ob.x, ob.y - ob.h, ob.w, ob.h);
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Ground
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, groundY, canvas.width, 100);
+
+      // Gravity & movement
+      player.vy += player.gravity;
+      player.y += player.vy;
+
+      if (player.y > groundY) {
+        player.y = groundY;
+        player.vy = 0;
+        player.onGround = true;
+      }
+
+      // Obstacles logic
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        let ob = obstacles[i];
+        ob.x -= gameSpeed;
+
+        if (ob.x + ob.w < 0) {
+          obstacles.splice(i, 1);
+          score++;
+          document.getElementById("score").textContent = "Score: " + score;
+        }
+
+        // Collision check
+        if (
+          player.x < ob.x + ob.w &&
+          player.x + player.w > ob.x &&
+          player.y > ob.y - ob.h
+        ) {
+          gameOver = true;
+          document.getElementById("score").textContent = "Game Over! Final Score: " + score;
+        }
+      }
+
+      drawPlayer();
+      drawObstacles();
+    }
+
+    function loop() {
+      update();
+      requestAnimationFrame(loop);
+    }
+
+    function jump() {
+      if (player.onGround && !gameOver) {
+        player.vy = player.jumpPower;
+        player.onGround = false;
+      }
+    }
+
+    // Controls
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space") jump();
+    });
+    canvas.addEventListener("touchstart", jump);
+
+    // Spawn obstacles
+    setInterval(() => {
+      if (!gameOver) spawnObstacle();
+    }, 1500);
+
+    loop();
+  </script>
+</body>
+</html>
